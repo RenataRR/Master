@@ -1,0 +1,152 @@
+---
+title: "Assessment1 - PA1_template"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Task1 
+
+Upload data set:
+
+
+```{r, include=FALSE}
+library(dplyr)
+library(tidyr)
+library(scales)
+library(zoo)
+library(knitr)
+library(lubridate)
+library(openxlsx)
+library(excel.link)
+library(kimisc)
+library(stringi)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(Amelia)
+library(mlbench)
+library(corrplot)
+library(caret)
+```
+
+```{r}
+directory <- "C:/R Code/Training Materials/Coursera-1"
+
+activity_orig <- read.csv(paste(directory,"activity.csv",sep='/'), 
+                        header=T, 
+                        na.strings="")
+
+activity_data <- activity_orig %>%
+  filter(steps != "NA")%>%
+  mutate(steps = as.numeric (steps),
+         date = as.Date(date))
+```
+
+## Task 2
+
+Calculate number of steps taken each day:
+
+```{r}
+activity_data %>% 
+  group_by(date) %>% 
+  dplyr::summarise(steps_total= sum(steps)) %>%
+  ggplot(aes(x=date, y=steps_total))+
+  geom_bar(stat = "identity") +
+  ggtitle('Total number of steps taken each day')
+```
+
+## Task 3
+
+Calculate mean and median steps per day: 
+
+```{r}
+activity_data_3 <- activity_data %>% 
+  group_by(date) %>% 
+  dplyr::summarise(steps_total= sum(steps)) %>%
+  mutate(steps_mean = mean(steps_total),
+         steps_median = median(steps_total))
+
+paste("Mean steps per day" , ceiling(activity_data_3$steps_mean[1]))
+
+paste("Median steps per day" , ceiling(activity_data_3$steps_median[1]))
+```
+
+## Task 4
+
+Plots average number of steps taken per day:
+
+```{r}
+activity_data %>% 
+  group_by(date) %>% 
+  dplyr::summarise(steps_mean= mean(steps)) %>%
+  ggplot(aes(x=date, y=steps_mean))+
+    geom_line(aes(group=1))+
+    ggtitle('Average number of steps taken')
+```
+
+## Task 5
+
+Gives interval where maximum number of steps take place:
+
+```{r}
+activity_data_5 <- activity_data %>% 
+  group_by(interval) %>% 
+  dplyr::summarise(steps_mean= mean(steps))
+  
+subset(activity_data_5, steps_mean == max(steps_mean))
+```
+
+## Task 6
+
+Missing values on column steps is filled with mean steps:
+
+```{r}
+steps_na <- activity_orig %>%
+  filter(steps == "NA")%>%
+  group_by(steps) %>%
+  dplyr::summarise(n=n())
+
+paste("Missing values on column steps", steps_na[2])
+
+activity_data_6 <- activity_orig %>%
+  mutate(steps =ifelse(steps == "NA","-1",steps),
+         steps = as.numeric (steps),
+         date = as.Date(date),
+         steps = replace(steps, steps ==-1,mean(steps, na.rm = TRUE)))
+
+```
+
+## Task 7
+
+Number of steps taken per each day when filling missing values:
+
+```{r}
+activity_data_6 %>% 
+  group_by(date) %>% 
+  dplyr::summarise(steps_total= sum(steps)) %>%
+  ggplot(aes(x=date, y=steps_total))+
+  geom_bar(stat = "identity") +
+  ggtitle('Total number of steps taken each day')
+```
+
+## Task 8
+
+```{r}
+activity_data_6 <- activity_data_6 %>% 
+  mutate(weekdays = weekdays(date),
+           weekdays_merge = ifelse(weekdays == "Sunday"|weekdays == "Saturday",
+                                    "weekend","weekday"))
+
+activity_data_6 %>%
+  group_by(weekdays_merge,interval) %>% 
+  dplyr::summarise(steps_mean= mean(steps)) %>% 
+  ggplot(aes(x=interval, y=steps_mean))+
+  geom_point()+
+  geom_line(aes(group=1))+
+  facet_wrap(~ weekdays_merge)+
+  ggtitle('Average number of steps taken')
+
+```
